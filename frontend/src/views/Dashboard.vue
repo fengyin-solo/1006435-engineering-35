@@ -28,6 +28,9 @@
         </tr>
       </tbody>
     </table>
+    <p v-if="safetyplanPendingReview > 0" class="page-desc">
+      应急预案待审核 {{ safetyplanPendingReview }} 份，与预案清单、详情页统计口径一致
+    </p>
     <footer class="page-foot">
       <span>数据保存在本机浏览器里，换浏览器或清缓存会回到示例数据</span>
     </footer>
@@ -35,13 +38,19 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 
-import { loadOverview } from '@/api/local-service'
+import { ENTRIES_PRIMED_EVENT, loadOverview } from '@/api/local-service'
 import type { OverviewResult } from '@/data/types'
 
 const cards = ref<OverviewResult['cards']>([])
 const moduleRows = ref<OverviewResult['modules']>([])
+
+// 应急预案行的「待处理」只统计待审核：取出来给文案用，方便和预案页对账。
+const safetyplanPendingReview = computed(() => {
+  const row = moduleRows.value.find((item) => item.name === '应急预案管理')
+  return row?.statusCounts?.['待审核'] ?? 0
+})
 
 function refresh() {
   const payload = loadOverview()
@@ -49,5 +58,13 @@ function refresh() {
   moduleRows.value = payload.modules
 }
 
-onMounted(refresh)
+onMounted(() => {
+  refresh()
+  // 铺底动作落库后立刻重算，不用手工点「重新统计」。
+  window.addEventListener(ENTRIES_PRIMED_EVENT, refresh)
+})
+
+onUnmounted(() => {
+  window.removeEventListener(ENTRIES_PRIMED_EVENT, refresh)
+})
 </script>

@@ -5,6 +5,9 @@ import type { ActionResult, EntryRow, ModuleMeta, OverviewResult, PageResult } f
 // 会写进数据的「往回走」动作：命中就把这条记录标成异常态，看板上能一眼看出来。
 const NEGATIVE_ACTIONS = ['撤销', '作废', '拒绝', '驳回', '停用', '忽略', '下线', '回滚']
 
+// 铺底动作落库后派发：已经打开的页面（预案清单、运营概览）监听到就立刻重取，不用手工刷新。
+export const ENTRIES_PRIMED_EVENT = 'waste-to-energy-plant:entries-primed'
+
 export function moduleMeta(key: string): ModuleMeta {
   const meta = MODULE_BY_KEY.get(key)
   if (!meta) {
@@ -26,6 +29,20 @@ export function filterRows(rows: EntryRow[], filters: Record<string, string>): E
 export function listEntries(key: string, filters: Record<string, string> = {}): PageResult {
   const matched = filterRows(listRows(key), filters)
   return { items: matched, total: matched.length, page: 1, size: matched.length }
+}
+
+// 按状态统计条目数：清单统计卡、详情页一致性提示、运营概览共用同一份口径，
+// 三处展示的待审核数都从这里取，避免各写一份 filter 对不上。
+export function countByStatus(key: string): Record<string, number> {
+  const result: Record<string, number> = {}
+  for (const status of moduleMeta(key).statuses) {
+    result[status] = 0
+  }
+  for (const row of listRows(key)) {
+    const status = String(row.status)
+    result[status] = (result[status] ?? 0) + 1
+  }
+  return result
 }
 
 export function runAction(key: string, id: number, action: string): ActionResult {
@@ -88,11 +105,20 @@ export function loadOverview(): OverviewResult {
   const rows = allRows()
   const modules = [...MODULE_BY_KEY.values()].map((meta) => {
     const entries = rows[meta.key] ?? []
+    const statusCounts: Record<string, number> = {}
+    for (const status of meta.statuses) {
+      statusCounts[status] = 0
+    }
+    for (const row of entries) {
+      const status = String(row.status)
+      statusCounts[status] = (statusCounts[status] ?? 0) + 1
+    }
     return {
       name: meta.name,
       created: entries.length,
       pending: entries.filter((row) => row.pending).length,
       abnormal: entries.filter((row) => row.abnormal).length,
+      statusCounts,
     }
   })
   const cards = [

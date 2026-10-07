@@ -34,5 +34,12 @@ export type ActionResult = {
 
 export type OverviewResult = {
   cards: { label: string; value: number }[]
-  modules: { name: string; created: number; pending: number; abnormal: number }[]
+  modules: {
+    name: string
+    created: number
+    pending: number
+    abnormal: number
+    // 各状态明细（如应急预案的「待审核」）：给概览展示与跨页对账用，老页面不读也不影响。
+    statusCounts?: Record<string, number>
+  }[]
 }
