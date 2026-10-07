@@ -69,3 +69,8 @@ npm run build
   `frontend/src/data/seed.ts`。
 - 状态流转只允许在 `local-service.ts` 里改，页面组件不做业务判断。
 - 想回到初始数据：清掉浏览器里 `waste-to-energy-plant:entries` 这一项，或调用 `resetModule(模块)`。
+- 本地演示铺底（应急预案页空表、运营概览全零时）：dev 环境打开「应急预案管理」页点
+  「铺底演示数据」，或控制台执行 `window.__seedDemoPlans()`。该动作先把整库抄到
+  `waste-to-energy-plant:entries:backup`，再将各模块复位回示例数据、按事故类型写入 8 条演示预案
+  （预案编号、预案名称、适用事故齐全）。按预案编号去重，重复执行只更新不新增，本地既有预案保留；
+  中途失败自动回滚到备份，可再试一次。铺底后清单、详情、运营概览的待审核数口径一致。

@@ -36,3 +36,14 @@ export type OverviewResult = {
   cards: { label: string; value: number }[]
   modules: { name: string; created: number; pending: number; abnormal: number }[]
 }
+
+export type DemoSeedResult = {
+  ok: boolean
+  message: string
+  planCount: number
+  inserted: number
+  updated: number
+  pendingReview: number
+  resetModules: number
+  backupKey: string
+}
